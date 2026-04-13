@@ -267,6 +267,17 @@ export const examples: Registry["items"] = [
     ],
   },
   {
+    name: "hero-01-demo",
+    type: "registry:example",
+    registryDependencies: [getRegistryItemUrl("hero-01")],
+    files: [
+      {
+        path: "examples/hero-01-demo.tsx",
+        type: "registry:example",
+      },
+    ],
+  },
+  {
     name: "haptic-demo",
     type: "registry:example",
     registryDependencies: [getRegistryItemUrl("haptic")],

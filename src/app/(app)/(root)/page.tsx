@@ -2,9 +2,7 @@ import type { Metadata } from "next"
 import type { ProfilePage as PageSchema, WithContext } from "schema-dts"
 
 import { About } from "@/features/portfolio/components/about"
-import { Awards } from "@/features/portfolio/components/awards"
 import { Blog } from "@/features/portfolio/components/blog"
-import { Bookmarks } from "@/features/portfolio/components/bookmarks"
 import { Certifications } from "@/features/portfolio/components/certifications"
 import { Components } from "@/features/portfolio/components/components"
 import { Experiences } from "@/features/portfolio/components/experiences"
@@ -14,7 +12,6 @@ import { ProfileCover } from "@/features/portfolio/components/profile-cover"
 import { ProfileHeader } from "@/features/portfolio/components/profile-header"
 import { Projects } from "@/features/portfolio/components/projects"
 import { SocialLinks } from "@/features/portfolio/components/social-links-v2"
-import { Sponsors } from "@/features/portfolio/components/sponsors"
 import { TechStack } from "@/features/portfolio/components/tech-stack"
 import { TestimonialsMarquee } from "@/features/portfolio/components/testimonials-marquee"
 import { USER } from "@/features/portfolio/data/user"
@@ -69,16 +66,7 @@ export default function Page() {
         <Projects />
         <Separator />
 
-        <Awards />
-        <Separator />
-
         <Certifications />
-        <Separator />
-
-        <Bookmarks />
-        <Separator />
-
-        <Sponsors />
         <Separator />
       </div>
     </>

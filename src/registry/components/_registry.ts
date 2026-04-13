@@ -313,6 +313,21 @@ export const components: Registry["items"] = [
     ],
   },
   {
+    name: "hero-01",
+    type: "registry:component",
+    title: "Hero 01",
+    author: "ncdai <dai@chanhdai.com>",
+    description:
+      "Product detail hero section with ratings, color and size selectors, and purchase actions.",
+    files: [
+      {
+        path: "components/hero-01/hero-01.tsx",
+        type: "registry:component",
+      },
+    ],
+    docs: "https://chanhdai.com/components/hero-01",
+  },
+  {
     name: "code-block-command",
     type: "registry:component",
     title: "Code Block Command",

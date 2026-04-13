@@ -1,0 +1,70 @@
+---
+title: Hero 01
+description: Product detail hero section with ratings, color and size selectors, and purchase actions.
+category: components
+createdAt: 2026-03-13
+updatedAt: 2026-03-13
+---
+
+<ComponentPreview
+  name="hero-01-demo"
+  openInV0Url="https://chanhdai.com/r/hero-01.json"
+/>
+
+## Features
+
+- Product-first layout with image, content panel, and strong pricing CTA.
+- Built-in rating stars and review count display.
+- Includes color swatches, size picker, and quick share actions.
+- Styled to preserve the original dark ecommerce visual language.
+
+## Installation
+
+<CodeTabs>
+
+<TabsListInstallType />
+
+<TabsContent value="cli">
+
+```bash
+npx shadcn add @ncdai/hero-01
+```
+
+</TabsContent>
+
+<TabsContent value="manual">
+
+<Steps>
+
+<Step>No additional dependencies required</Step>
+
+<Step>Copy and paste the following code into your project</Step>
+
+<ComponentSource
+  name="hero-01"
+  title="components/hero-01.tsx"
+  showLineNumbers
+/>
+
+<Step>Update the import paths to match your project setup</Step>
+
+</Steps>
+
+</TabsContent>
+
+</CodeTabs>
+
+## Usage
+
+```tsx
+import { Hero01 } from "@/components/hero-01"
+```
+
+```tsx
+<Hero01 />
+```
+
+## Notes
+
+- The component exposes props for `brand`, `title`, `description`, `price`, `imageSrc`, `imageAlt`, `reviewCount`, and `rating`.
+- Pass a custom `className` to adjust spacing or fit this section into your page layout.

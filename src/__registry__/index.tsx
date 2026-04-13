@@ -157,6 +157,15 @@ export const Index: Record<string, any> = {
       type: "registry:hook",
     }],
   },
+  "hero-01": {
+    name: "hero-01",
+    description: "Product detail hero section with ratings, color and size selectors, and purchase actions.",
+    type: "registry:component",
+    files: [{
+      path: "src/registry/components/hero-01/hero-01.tsx",
+      type: "registry:component",
+    }],
+  },
   "code-block-command": {
     name: "code-block-command",
     description: "Display install commands with package manager switcher and copy button.",
@@ -490,6 +499,20 @@ export const Index: Record<string, any> = {
     }],
     component: React.lazy(async () => {
       const mod = await import("@/registry/examples/copy-button-demo.tsx")
+      const exportName = Object.keys(mod).find(key => typeof mod[key] === 'function' || typeof mod[key] === 'object') || item.name
+      return { default: mod.default || mod[exportName] }
+    }),
+  },
+  "hero-01-demo": {
+    name: "hero-01-demo",
+    description: "",
+    type: "registry:example",
+    files: [{
+      path: "src/registry/examples/hero-01-demo.tsx",
+      type: "registry:example",
+    }],
+    component: React.lazy(async () => {
+      const mod = await import("@/registry/examples/hero-01-demo.tsx")
       const exportName = Object.keys(mod).find(key => typeof mod[key] === 'function' || typeof mod[key] === 'object') || item.name
       return { default: mod.default || mod[exportName] }
     }),

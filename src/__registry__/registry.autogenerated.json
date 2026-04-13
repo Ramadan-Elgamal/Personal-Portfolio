@@ -385,6 +385,20 @@
       "type": "registry:component"
     },
     {
+      "name": "hero-01",
+      "title": "Hero 01",
+      "author": "ncdai <dai@chanhdai.com>",
+      "description": "Product detail hero section with ratings, color and size selectors, and purchase actions.",
+      "files": [
+        {
+          "path": "src/registry/components/hero-01/hero-01.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "https://chanhdai.com/components/hero-01",
+      "type": "registry:component"
+    },
+    {
       "name": "code-block-command",
       "title": "Code Block Command",
       "author": "ncdai <dai@chanhdai.com>",
