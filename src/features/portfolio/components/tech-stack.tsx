@@ -10,6 +10,8 @@ import { TECH_STACK } from "../data/tech-stack"
 import { Panel, PanelContent, PanelHeader, PanelTitle } from "./panel"
 
 export function TechStack() {
+  const iconClassName = "h-full w-full object-contain"
+
   return (
     <Panel id="stack">
       <PanelHeader>
@@ -30,34 +32,37 @@ export function TechStack() {
                         rel="noopener noreferrer"
                         aria-label={tech.title}
                       >
-                        {tech.theme ? (
-                          <>
+                        <span className="inline-flex h-8 w-8 items-center justify-center">
+                          {tech.theme ? (
+                            <>
+                              <Image
+                                src={`/tech-stack-icons/${tech.key}-light.svg`}
+                                alt={`${tech.title} light icon`}
+                                width={32}
+                                height={32}
+                                className={`${iconClassName} hidden [html.light_&]:block`}
+                                unoptimized
+                              />
+                              <Image
+                                src={`/tech-stack-icons/${tech.key}-dark.svg`}
+                                alt={`${tech.title} dark icon`}
+                                width={32}
+                                height={32}
+                                className={`${iconClassName} hidden [html.dark_&]:block`}
+                                unoptimized
+                              />
+                            </>
+                          ) : (
                             <Image
-                              src={`https://assets.chanhdai.com/images/tech-stack-icons/${tech.key}-light.svg`}
-                              alt={`${tech.title} light icon`}
+                              src={`/tech-stack-icons/${tech.key}.svg`}
+                              alt={`${tech.title} icon`}
                               width={32}
                               height={32}
-                              className="hidden [html.light_&]:block"
+                              className={iconClassName}
                               unoptimized
                             />
-                            <Image
-                              src={`https://assets.chanhdai.com/images/tech-stack-icons/${tech.key}-dark.svg`}
-                              alt={`${tech.title} dark icon`}
-                              width={32}
-                              height={32}
-                              className="hidden [html.dark_&]:block"
-                              unoptimized
-                            />
-                          </>
-                        ) : (
-                          <Image
-                            src={`https://assets.chanhdai.com/images/tech-stack-icons/${tech.key}.svg`}
-                            alt={`${tech.title} icon`}
-                            width={32}
-                            height={32}
-                            unoptimized
-                          />
-                        )}
+                          )}
+                        </span>
                       </a>
                     }
                   />

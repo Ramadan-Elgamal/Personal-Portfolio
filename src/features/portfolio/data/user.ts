@@ -14,9 +14,9 @@ export const USER: User = {
     "Building Meaningful Things",
   ],
   address: "Dakahlia, Egypt",
-  phoneNumber: "01142544816", // E.164 format, base64 encoded (https://t.io.vn/base64-string-converter)
+  phoneNumber: "KzIwMTE0MjU0NDgxNg==", // E.164 format, base64 encoded (https://t.io.vn/base64-string-converter)
   email: "cmFtYWRhbmVsZ2FtYWwyMUBnbWFpbC5jb20=", // base64 encoded
-  website: "https://ramadanelgamal.com",
+  website: "https://ramadanalgamal.netlify.app",
   jobTitle: "Software Engineer",
   jobs: [
     {
