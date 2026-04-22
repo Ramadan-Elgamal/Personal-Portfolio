@@ -81,18 +81,21 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "https://assets.chanhdai.com/images/favicon.ico",
+        url: "/logo-dark.svg",
         sizes: "any",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: light)",
       },
       {
-        url: "https://assets.chanhdai.com/images/favicon.svg",
+        url: "/logo-light.svg",
         type: "image/svg+xml",
+        media: "(prefers-color-scheme: dark)",
       },
     ],
     apple: {
-      url: "https://assets.chanhdai.com/images/apple-touch-icon.png",
-      type: "image/png",
-      sizes: "180x180",
+      url: "/logo-dark.svg",
+      type: "image/svg+xml",
+      sizes: "any",
     },
   },
 }

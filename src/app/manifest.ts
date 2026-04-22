@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: SITE_INFO.description,
     icons: [
       {
-        src: "/favicon.ico",
-        type: "image/x-icon",
+        src: "/logo-dark.svg",
+        type: "image/svg+xml",
         sizes: "any",
         purpose: "any",
       },

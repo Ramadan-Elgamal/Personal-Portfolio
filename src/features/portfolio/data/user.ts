@@ -36,7 +36,7 @@ export const USER: User = {
 - Creator of [Learning Management System](https://github.com/Ramadan-Elgamal/lms-app): E-learning platform with course creation, payments, and video streaming
 `,
   avatar: "https://github.com/Ramadan-Elgamal.png",
-  ogImage: "https://github.com/Ramadan-Elgamal.png",
+  ogImage: "/logo-dark.svg",
   namePronunciationUrl: "",
   timeZone: "Africa/Cairo",
   keywords: [

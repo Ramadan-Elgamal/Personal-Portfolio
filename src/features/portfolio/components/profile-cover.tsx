@@ -3,7 +3,7 @@
 import { useRef } from "react"
 
 import { BrandContextMenu } from "@/components/brand-context-menu"
-import { ChanhDaiMark } from "@/components/chanhdai-mark"
+import { ChanhDaiMark } from "@/components/r3b-mark"
 import { Magnet } from "@/components/react-bits/magnet"
 import { cn } from "@/lib/utils"
 
