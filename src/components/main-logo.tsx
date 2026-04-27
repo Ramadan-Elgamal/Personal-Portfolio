@@ -1,15 +1,25 @@
-export function MainLogo(props: React.ComponentProps<"svg">) {
+import Image from "next/image"
+
+export function MainLogo(props: React.ComponentProps<"div">) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 352 160"
+    <div
       {...props}
+      className={`relative flex aspect-[352/160] items-center justify-center overflow-hidden ${props.className || ""}`}
     >
-      <path
-        fill="currentColor"
-        d="M0 0h32v160H0ZM32 0h64v96H32V64h32V32H32ZM64 96h32v64H64ZM128 0h96v64h-32v32h32v64h-96v-32h64V96h-64V64h64V32h-64ZM256 0h32v160h-32ZM288 0h64v64h-32v32h32v64h-64v-32h32V96h-32V64h32V32h-32Z"
+      <Image
+        src="/logo-dark.svg"
+        alt="RRR Logo"
+        fill
+        className="object-contain dark:hidden"
+        priority
       />
-    </svg>
+      <Image
+        src="/logo-light.svg"
+        alt="RRR Logo"
+        fill
+        className="hidden object-contain dark:block"
+        priority
+      />
+    </div>
   )
 }
