@@ -31,11 +31,20 @@ export const PROJECTS: Project[] = [
 - Features shipped: Authentication, AI generation, thumbnail creation, history management, bilingual support.`,
   },
   {
+    id: "e-commerce",
+    title: "E-Commerce Platform",
+    period: { start: "2026" },
+    link: "https://github.com/ITI-OS-Team-2026/E-commerce-MEAN-project.git",
+    skills: ["Angular", "Node.js", "Express", "MongoDB"],
+    description: `- Shipped production-grade features: customer-facing storefront (browse/search/cart/checkout), seller portal (inventory/image management), and admin controls (users/categories/orders)   with role-based UI rendering
+- Configured defense-in-depth security: Helmet headers, CORS policies, XSS sanitization, rate limiting, and HPP protection against common web vulnerabilities`,
+  },
+  {
     id: "lms",
     title: "LMS Platform",
     period: { start: "2025" },
     link: "https://github.com/Ramadan-Elgamal/lms-app",
-    skills: ["Personal Project", "MERN", "Clerk", "Stripe"],
+    skills: ["React", "Nodejs", "MongoDB", "Clerk", "Stripe"],
     description: `Full-Stack Learning Management System
 - Architected and developed a full-stack LMS platform with role-based interfaces for educators and students.
 - Integrated third-party payment processing via Stripe API with secure checkout sessions and webhook handlers for transaction lifecycle management, enabling real-time course enrollment and revenue tracking.`,
