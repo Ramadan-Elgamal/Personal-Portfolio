@@ -1,4 +1,16 @@
-🐳 Phase 11: Containerization & CI/CD Pipelines
+---
+title: "🐳 Phase 11: Containerization & CI/CD Pipelines"
+description: "Package the application into a secure, lightweight, and portable container while automating integration testing. We implement three core infrastructure pillars:"
+language: "nodejs"
+category: "playbook"
+tags:
+  - nodejs
+  - architecture
+  - phase-11
+difficulty: "advanced"
+date: "2026-05-15"
+slug: "phase-11"
+related: []
 ---
 
 ## 🎯 Phase Objective
@@ -17,7 +29,6 @@ Package the application into a secure, lightweight, and portable container while
 - **Action:** Create a `Dockerfile` (no file extension) at the root of your workspace.
 
 > **💡 Security & Size Optimization:** This multi-stage setup ensures that source code files (`.ts`) and heavy development dependencies (like Jest and typescript compilers) never make it into your final production container, keeping the attack surface small and the image size under 150MB.
-> 
 
 ```docker
 # ==========================================
@@ -137,9 +148,9 @@ name: Continuous Integration Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   build-and-test:
@@ -152,8 +163,8 @@ jobs:
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Install Clean Dependencies
         run: npm ci
@@ -204,10 +215,10 @@ README.md
 
 ## 🔍 Next Steps Checklist
 
-- [ ]  Create the `Dockerfile` and `.dockerignore` files at the root level.
-- [ ]  Create `docker-compose.yml` to define your multi-container environment.
-- [ ]  Scaffold the GitHub Actions configuration inside `.github/workflows/ci.yml`.
-- [ ]  Verify your Docker setup locally by running `docker compose up --build` in your terminal. You should see MongoDB boot up, pass its health check, and trigger the API launch successfully.
+- [ ] Create the `Dockerfile` and `.dockerignore` files at the root level.
+- [ ] Create `docker-compose.yml` to define your multi-container environment.
+- [ ] Scaffold the GitHub Actions configuration inside `.github/workflows/ci.yml`.
+- [ ] Verify your Docker setup locally by running `docker compose up --build` in your terminal. You should see MongoDB boot up, pass its health check, and trigger the API launch successfully.
 
 ---
 

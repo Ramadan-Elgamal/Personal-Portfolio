@@ -1,4 +1,16 @@
-📂 Phase 12.5 (Optional): Vector Persistence & Semantic Search
+---
+title: "📂 Phase 12.5 (Optional): Vector Persistence & Semantic Search"
+description: "Enable your API to perform **Semantic Search**—finding data based on meaning rather than just keywords. This phase provides the 'Memory' for your RAG (Retrieval-Augmented Generation) pipeline. You will learn to generate mathematical representations of text (Embeddings) and store them in MongoDB for high-speed similarity retrieval."
+language: "nodejs"
+category: "playbook"
+tags:
+  - nodejs
+  - architecture
+  - phase-12.5
+difficulty: "advanced"
+date: "2026-05-15"
+slug: "phase-12.5"
+related: []
 ---
 
 ## 🎯 Phase Objective
@@ -25,22 +37,28 @@ npm install openai
 - **Action:** Create a model to store your "Knowledge Base" items. The key is the `embedding` field, which stores an array of numbers (the vector).
 
 ```tsx
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose"
 
 export interface IKnowledge extends Document {
-  content: string;    // The actual text snippet
-  metadata: object;   // Source info (e.g., { file: "manual.pdf", page: 12 })
-  embedding: number[]; // The vector representation (usually 1536 dimensions)
+  content: string // The actual text snippet
+  metadata: object // Source info (e.g., { file: "manual.pdf", page: 12 })
+  embedding: number[] // The vector representation (usually 1536 dimensions)
 }
 
-const knowledgeSchema = new Schema<IKnowledge>({
-  content: { type: String, required: true },
-  metadata: { type: Object },
-  // This field must be indexed in MongoDB Atlas as a "vectorSearch" index
-  embedding: { type: [Number], required: true },
-}, { timestamps: true });
+const knowledgeSchema = new Schema<IKnowledge>(
+  {
+    content: { type: String, required: true },
+    metadata: { type: Object },
+    // This field must be indexed in MongoDB Atlas as a "vectorSearch" index
+    embedding: { type: [Number], required: true },
+  },
+  { timestamps: true }
+)
 
-export const Knowledge = mongoose.model<IKnowledge>('Knowledge', knowledgeSchema);
+export const Knowledge = mongoose.model<IKnowledge>(
+  "Knowledge",
+  knowledgeSchema
+)
 ```
 
 ---
@@ -51,21 +69,21 @@ export const Knowledge = mongoose.model<IKnowledge>('Knowledge', knowledgeSchema
 - **Action:** This service converts plain text into a vector.
 
 ```tsx
-import { aiClient } from '../../config/ai'; // Reusing client from Phase 12
-import { AppError } from '../../utils/AppError';
+import { aiClient } from "../../config/ai" // Reusing client from Phase 12
+import { AppError } from "../../utils/AppError"
 
 export const generateEmbedding = async (text: string): Promise<number[]> => {
   try {
     const response = await aiClient.embeddings.create({
       model: "text-embedding-3-small",
       input: text,
-    });
+    })
 
-    return response.data[0].embedding;
+    return response.data[0].embedding
   } catch (error: any) {
-    throw new AppError(`Embedding Generation Failed: ${error.message}`, 502);
+    throw new AppError(`Embedding Generation Failed: ${error.message}`, 502)
   }
-};
+}
 ```
 
 ---
@@ -76,12 +94,12 @@ export const generateEmbedding = async (text: string): Promise<number[]> => {
 - **Action:** This uses MongoDB's `$vectorSearch` stage to find the most relevant snippets for a user's query.
 
 ```tsx
-import { Knowledge } from '../../models/knowledge.model';
-import { generateEmbedding } from './embedding.service';
+import { Knowledge } from "../../models/knowledge.model"
+import { generateEmbedding } from "./embedding.service"
 
 export const findRelevantContext = async (query: string, limit: number = 3) => {
   // 1. Convert the user's question into a vector
-  const queryVector = await generateEmbedding(query);
+  const queryVector = await generateEmbedding(query)
 
   // 2. Perform a Vector Search in MongoDB
   const results = await Knowledge.aggregate([
@@ -92,20 +110,20 @@ export const findRelevantContext = async (query: string, limit: number = 3) => {
         queryVector: queryVector,
         numCandidates: 100,
         limit: limit,
-      }
+      },
     },
     {
       $project: {
         _id: 0,
         content: 1,
-        score: { $meta: "vectorSearchScore" } // Get the similarity score
-      }
-    }
-  ]);
+        score: { $meta: "vectorSearchScore" }, // Get the similarity score
+      },
+    },
+  ])
 
   // Combine the results into a single string for the LLM
-  return results.map(r => r.content).join("\n\n");
-};
+  return results.map((r) => r.content).join("\n\n")
+}
 ```
 
 ---
@@ -128,13 +146,13 @@ export const ragPipelineAdapter: IAIService = {
 
     // 2. Build the augmented prompt
     const enrichedPrompt = `
-      Use the following context to answer the user query. 
+      Use the following context to answer the user query.
       If the answer is not in the context, say you don't know.
 
-      Context: 
+      Context:
       ${context}
 
-      User Query: 
+      User Query:
       ${input.prompt}
     `;
 
@@ -144,7 +162,7 @@ export const ragPipelineAdapter: IAIService = {
       prompt: enrichedPrompt,
     });
   },
-  
+
   // streamText follows the same pattern...
   async streamText(input: IGenerateInput) { ... }
 };
@@ -177,10 +195,10 @@ Unlike standard indexes, **Vector Indexes** must currently be created via the Mo
 
 ## 🔍 Next Steps Checklist
 
-- [ ]  Create the `Knowledge` model.
-- [ ]  Implement `generateEmbedding` to talk to your AI provider.
-- [ ]  Implement `vectorStore.service` to perform the `$vectorSearch`.
-- [ ]  Connect `vectorStore` to your `ragPipelineAdapter` in Phase 12.
-- [ ]  **Test:** Create a "Seed" script to upload some text data with embeddings, then ask the AI a question about that specific data.
+- [ ] Create the `Knowledge` model.
+- [ ] Implement `generateEmbedding` to talk to your AI provider.
+- [ ] Implement `vectorStore.service` to perform the `$vectorSearch`.
+- [ ] Connect `vectorStore` to your `ragPipelineAdapter` in Phase 12.
+- [ ] **Test:** Create a "Seed" script to upload some text data with embeddings, then ask the AI a question about that specific data.
 
 ---

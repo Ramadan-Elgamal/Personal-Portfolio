@@ -1,4 +1,18 @@
-⚙️ Phase 2: Runtime & Type Safety Core
+---
+title: "⚙️ Phase 2: Runtime & Type Safety Core"
+description: "Establish rock-solid compile-time safety, modern module resolution, and environment variable management. By locking in strict TypeScript configurations and fast execution tools (`tsx`), we eliminate the vast majority of runtime errors (like `undefined` crashes) before our code ever runs."
+language: "nodejs"
+category: "installation"
+tags:
+  - nodejs
+  - architecture
+  - phase-2
+difficulty: "beginner"
+date: "2026-05-15"
+slug: "phase-2"
+related: []
+---
+
 ## 🎯 Phase Objective
 
 Establish rock-solid compile-time safety, modern module resolution, and environment variable management. By locking in strict TypeScript configurations and fast execution tools (`tsx`), we eliminate the vast majority of runtime errors (like `undefined` crashes) before our code ever runs.
@@ -19,7 +33,6 @@ npm install -D typescript @types/node @types/express tsx
 ```
 
 > **💡 Why `tsx` instead of `nodemon` or `ts-node`?** > `tsx` (TypeScript Execute) is a lightning-fast runner powered by `esbuild`. It handles modern module resolution out of the box, requires zero compilation overhead during local development, and watches for file changes effortlessly.
-> 
 
 ---
 
@@ -43,14 +56,14 @@ Next, open the generated `tsconfig.json` at the root of your project and replace
     "target": "ES2022",
     "module": "CommonJS",
     "lib": ["ES2022"],
-    
+
     /* Bundling & Resolution */
     "rootDir": "./src",
     "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    
+
     /* Strict Type-Checking (Non-Negotiable) */
     "strict": true,
     "noImplicitAny": true,
@@ -123,8 +136,8 @@ NODE_ENV=development
 
 ## 🔍 Next Steps Checklist
 
-- [ ]  Install the NPM dependencies in your terminal.
-- [ ]  Update `tsconfig.json` with the strict compilation rules.
-- [ ]  Add the execution scripts to `package.json`.
-- [ ]  Verify setup by running `npm run dev` (it should successfully boot the server created in Phase 1).
-- [ ]  Proceed to **Phase 3** to configure robust database persistence (MongoDB Singleton setup).
+- [ ] Install the NPM dependencies in your terminal.
+- [ ] Update `tsconfig.json` with the strict compilation rules.
+- [ ] Add the execution scripts to `package.json`.
+- [ ] Verify setup by running `npm run dev` (it should successfully boot the server created in Phase 1).
+- [ ] Proceed to **Phase 3** to configure robust database persistence (MongoDB Singleton setup).

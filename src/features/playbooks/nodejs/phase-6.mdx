@@ -1,4 +1,16 @@
-🛟 Phase 6: Global Safety Nets & Error Handling
+---
+title: "🛟 Phase 6: Global Safety Nets & Error Handling"
+description: "Establish a centralized, bulletproof error-handling architecture. By decoupling error catching from our feature controllers, we keep our transport layer incredibly clean. We introduce three core pillars:"
+language: "nodejs"
+category: "playbook"
+tags:
+  - nodejs
+  - architecture
+  - phase-6
+difficulty: "intermediate"
+date: "2026-05-15"
+slug: "phase-6"
+related: []
 ---
 
 ## 🎯 Phase Objective
@@ -20,19 +32,19 @@ This class differentiates between **Operational Errors** (expected failures like
 
 ```tsx
 export class AppError extends Error {
-  public statusCode: number;
-  public isOperational: boolean;
+  public statusCode: number
+  public isOperational: boolean
 
   constructor(message: string, statusCode: number) {
-    super(message);
-    this.statusCode = statusCode;
+    super(message)
+    this.statusCode = statusCode
 
     // Flagging this as 'true' means we expected this error might happen.
     // Untrusted/unhandled errors (like third-party package crashes) won't have this flag.
-    this.isOperational = true;
+    this.isOperational = true
 
     // Capture the stack trace, excluding the constructor call from it
-    Error.captureStackTrace(this, this.constructor);
+    Error.captureStackTrace(this, this.constructor)
   }
 }
 ```
@@ -47,13 +59,13 @@ export class AppError extends Error {
 Express 4 does not automatically catch errors thrown inside `async` functions. This higher-order function wraps our controllers, automatically catches rejected promises, and passes them straight to the `next()` function.
 
 ```tsx
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express"
 
 export const asyncHandler = (fn: Function) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-};
+    Promise.resolve(fn(req, res, next)).catch(next)
+  }
+}
 ```
 
 ---
@@ -64,11 +76,10 @@ export const asyncHandler = (fn: Function) => {
 - **Action:** Create `src/middlewares/error.middleware.ts`.
 
 > **⚠️ CRITICAL SIGNATURE RULE:** > Express uses the function signature length to detect error handlers. You **must** include all four parameters (`err, req, res, next`) in the exact order shown below, even if you don't directly call `next`. If you omit `next`, Express will treat it as a standard middleware and your error handling will break silently.
-> 
 
 ```tsx
-import { Request, Response, NextFunction } from 'express';
-import { AppError } from '../utils/AppError';
+import { Request, Response, NextFunction } from "express"
+import { AppError } from "../utils/AppError"
 
 export const errorHandler = (
   err: Error | AppError,
@@ -76,31 +87,31 @@ export const errorHandler = (
   res: Response,
   next: NextFunction // <-- REQUIRED by Express signature rules
 ): void => {
-  let statusCode = 500;
-  let message = 'Internal Server Error';
+  let statusCode = 500
+  let message = "Internal Server Error"
 
   // 1. Check if the error is our custom AppError
-  if ('statusCode' in err) {
-    statusCode = (err as AppError).statusCode;
-    message = err.message;
+  if ("statusCode" in err) {
+    statusCode = (err as AppError).statusCode
+    message = err.message
   }
 
   // 2. Secure Logging Strategy
-  console.error(`[Error] ${statusCode} - ${message}`);
+  console.error(`[Error] ${statusCode} - ${message}`)
 
   // If it's NOT an operational error (it's an unexpected bug), log the full stack trace
-  if (!('isOperational' in err) || !err.isOperational) {
-    console.error('🚨 CRITICAL UNEXPECTED BUG:', err.stack);
+  if (!("isOperational" in err) || !err.isOperational) {
+    console.error("🚨 CRITICAL UNEXPECTED BUG:", err.stack)
   }
 
   // 3. Send Standardized JSON Response
   res.status(statusCode).json({
-    status: 'error',
+    status: "error",
     message,
     // Optional: Only leak full stack traces to the client if we are running locally
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
-};
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+  })
+}
 ```
 
 ---
@@ -113,22 +124,24 @@ export const errorHandler = (
 **CRITICAL RULE:** The 404 catch-all route and the global `errorHandler` middleware **must** be the absolute last `app.use()` calls in your file, mounted after all feature routes.
 
 ```tsx
-import express, { Application, Request, Response, NextFunction } from 'express';
-import userRoutes from './routes/user.routes';
+import express, { Application, Request, Response, NextFunction } from "express"
+import userRoutes from "./routes/user.routes"
 // <-- 1. Import AppError and the global error handler
-import { AppError } from './utils/AppError';
-import { errorHandler } from './middlewares/error.middleware';
+import { AppError } from "./utils/AppError"
+import { errorHandler } from "./middlewares/error.middleware"
 
-const app: Application = express();
+const app: Application = express()
 
-app.use(express.json());
+app.use(express.json())
 
-app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'success', message: 'API is running normally.' });
-});
+app.get("/health", (req: Request, res: Response) => {
+  res
+    .status(200)
+    .json({ status: "success", message: "API is running normally." })
+})
 
 // Feature Routes
-app.use('/api/v1/users', userRoutes);
+app.use("/api/v1/users", userRoutes)
 
 // ==========================================
 // GLOBAL SAFETY NETS (Must be mounted LAST)
@@ -136,22 +149,27 @@ app.use('/api/v1/users', userRoutes);
 
 // STEP 1: Catch-all for unmapped routes (404 Handler)
 // Intercepts requests to endpoints that don't exist and throws a clean operational error
-app.all('*', (req: Request, res: Response, next: NextFunction) => {
-  next(new AppError(`Cannot find ${req.method} ${req.originalUrl} on this server.`, 404));
-});
+app.all("*", (req: Request, res: Response, next: NextFunction) => {
+  next(
+    new AppError(
+      `Cannot find ${req.method} ${req.originalUrl} on this server.`,
+      404
+    )
+  )
+})
 
 // STEP 2: Mount the Global Error Handler
 // Catches everything thrown from controllers, services, or the 404 handler above
-app.use(errorHandler);
+app.use(errorHandler)
 
-export default app;
+export default app
 ```
 
 ---
 
 ## 🔍 Next Steps Checklist
 
-- [ ]  Create `AppError.ts` and `asyncHandler.ts` inside `src/utils/`.
-- [ ]  Create `error.middleware.ts` inside `src/middlewares/`, ensuring the 4-parameter signature is intact.
-- [ ]  Update `src/app.ts` to mount the 404 handler and global error handler at the very end of the file.
-- [ ]  Test the safety net: fire a request to a random route like `GET /api/v1/does-not-exist` to verify you receive a perfectly formatted JSON 404 error instead of an Express HTML page.
+- [ ] Create `AppError.ts` and `asyncHandler.ts` inside `src/utils/`.
+- [ ] Create `error.middleware.ts` inside `src/middlewares/`, ensuring the 4-parameter signature is intact.
+- [ ] Update `src/app.ts` to mount the 404 handler and global error handler at the very end of the file.
+- [ ] Test the safety net: fire a request to a random route like `GET /api/v1/does-not-exist` to verify you receive a perfectly formatted JSON 404 error instead of an Express HTML page.

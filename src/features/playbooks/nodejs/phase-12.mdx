@@ -1,4 +1,16 @@
-🧠 Phase 12:(Optional) The Dynamic AI Gateway
+---
+title: "🧠 Phase 12: The Dynamic AI Gateway"
+description: "Create a service layer for AI integration with OpenAI or Gemini, enabling your API to generate intelligent responses and embeddings."
+language: "nodejs"
+category: "playbook"
+tags:
+  - nodejs
+  - architecture
+  - phase-12
+difficulty: "advanced"
+date: "2026-05-15"
+slug: "phase-12"
+related: []
 ---
 
 ## 📐 1. The Universal Contract (`src/services/ai/ai.interface.ts`)
@@ -8,15 +20,15 @@
 
 ```tsx
 export interface IGenerateInput {
-  prompt: string;
-  systemPrompt?: string;
-  sessionId?: string; // Used later if RAG or memory needs to track user threads
+  prompt: string
+  systemPrompt?: string
+  sessionId?: string // Used later if RAG or memory needs to track user threads
 }
 
 // Every AI Provider or RAG pipeline MUST implement this exact contract
 export interface IAIService {
-  generateText(input: IGenerateInput): Promise<string>;
-  streamText(input: IGenerateInput): Promise<AsyncIterable<string>>;
+  generateText(input: IGenerateInput): Promise<string>
+  streamText(input: IGenerateInput): Promise<AsyncIterable<string>>
 }
 ```
 
@@ -28,33 +40,36 @@ export interface IAIService {
 - **Action:** This factory inspects your `.env` file at runtime and instantly boots the correct adapter. Your controllers will import the service from here.
 
 ```tsx
-import { IAIService } from './ai.interface';
-import { AppError } from '../../utils/AppError';
+import { IAIService } from "./ai.interface"
+import { AppError } from "../../utils/AppError"
 
 // Placeholder imports for our plug-and-play adapters
-import { openAIAdapter } from './adapters/openai.adapter';
-import { geminiAdapter } from './adapters/gemini.adapter';
-import { ragPipelineAdapter } from './adapters/rag.adapter';
+import { openAIAdapter } from "./adapters/openai.adapter"
+import { geminiAdapter } from "./adapters/gemini.adapter"
+import { ragPipelineAdapter } from "./adapters/rag.adapter"
 
 export const getAIService = (): IAIService => {
-  const provider = process.env.AI_PROVIDER || 'openai';
+  const provider = process.env.AI_PROVIDER || "openai"
 
   switch (provider.toLowerCase()) {
-    case 'openai':
-      return openAIAdapter;
-    case 'gemini':
-      return geminiAdapter;
-    case 'rag':
-      // RAG is treated as just another adapter! It intercepts the prompt, 
+    case "openai":
+      return openAIAdapter
+    case "gemini":
+      return geminiAdapter
+    case "rag":
+      // RAG is treated as just another adapter! It intercepts the prompt,
       // queries a vector database for context, and then calls an LLM.
-      return ragPipelineAdapter;
+      return ragPipelineAdapter
     default:
-      throw new AppError(`❌ Configuration Error: AI_PROVIDER '${provider}' is not supported.`, 500);
+      throw new AppError(
+        `❌ Configuration Error: AI_PROVIDER '${provider}' is not supported.`,
+        500
+      )
   }
-};
+}
 
 // Export the dynamically resolved service instance
-export const aiService = getAIService();
+export const aiService = getAIService()
 ```
 
 ---
@@ -67,84 +82,90 @@ export const aiService = getAIService();
 
 ```tsx
 // Requires: npm install openai
-import OpenAI from 'openai';
-import { IAIService, IGenerateInput } from '../ai.interface';
-import { AppError } from '../../../utils/AppError';
+import OpenAI from "openai"
+import { IAIService, IGenerateInput } from "../ai.interface"
+import { AppError } from "../../../utils/AppError"
 
-const getClient = () => new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const getClient = () => new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 export const openAIAdapter: IAIService = {
   async generateText(input: IGenerateInput): Promise<string> {
-    const client = getClient();
+    const client = getClient()
     const response = await client.chat.completions.create({
-      model: process.env.AI_MODEL || 'gpt-4o-mini',
+      model: process.env.AI_MODEL || "gpt-4o-mini",
       messages: [
-        { role: 'system', content: input.systemPrompt || 'You are a helpful assistant.' },
-        { role: 'user', content: input.prompt },
+        {
+          role: "system",
+          content: input.systemPrompt || "You are a helpful assistant.",
+        },
+        { role: "user", content: input.prompt },
       ],
-    });
+    })
 
-    return response.choices[0]?.message?.content || '';
+    return response.choices[0]?.message?.content || ""
   },
 
   async streamText(input: IGenerateInput): Promise<AsyncIterable<string>> {
-    const client = getClient();
+    const client = getClient()
     const stream = await client.chat.completions.create({
-      model: process.env.AI_MODEL || 'gpt-4o-mini',
+      model: process.env.AI_MODEL || "gpt-4o-mini",
       stream: true,
       messages: [
-        { role: 'system', content: input.systemPrompt || 'You are a helpful assistant.' },
-        { role: 'user', content: input.prompt },
+        {
+          role: "system",
+          content: input.systemPrompt || "You are a helpful assistant.",
+        },
+        { role: "user", content: input.prompt },
       ],
-    });
+    })
 
     // Translate the custom OpenAI stream object into a clean, standard string generator
     return (async function* () {
       for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || '';
-        if (content) yield content;
+        const content = chunk.choices[0]?.delta?.content || ""
+        if (content) yield content
       }
-    })();
+    })()
   },
-};
+}
 ```
 
 ### ▶️ Adapter B: Google Gen AI / Gemini (`src/services/ai/adapters/gemini.adapter.ts`)
 
 ```tsx
 // Requires: npm install @google/genai
-import { GoogleGenAI } from '@google/genai';
-import { IAIService, IGenerateInput } from '../ai.interface';
+import { GoogleGenAI } from "@google/genai"
+import { IAIService, IGenerateInput } from "../ai.interface"
 
-const getClient = () => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const getClient = () => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
 export const geminiAdapter: IAIService = {
   async generateText(input: IGenerateInput): Promise<string> {
-    const ai = getClient();
+    const ai = getClient()
     const response = await ai.models.generateContent({
-      model: process.env.AI_MODEL || 'gemini-2.5-flash',
+      model: process.env.AI_MODEL || "gemini-2.5-flash",
       contents: input.prompt,
       config: { systemInstruction: input.systemPrompt },
-    });
+    })
 
-    return response.text || '';
+    return response.text || ""
   },
 
   async streamText(input: IGenerateInput): Promise<AsyncIterable<string>> {
-    const ai = getClient();
+    const ai = getClient()
     const responseStream = await ai.models.generateContentStream({
-      model: process.env.AI_MODEL || 'gemini-2.5-flash',
+      model: process.env.AI_MODEL || "gemini-2.5-flash",
       contents: input.prompt,
       config: { systemInstruction: input.systemPrompt },
-    });
+    })
 
     return (async function* () {
       for await (const chunk of responseStream) {
-        if (chunk.text) yield chunk.text;
+        if (chunk.text) yield chunk.text
       }
-    })();
+    })()
   },
-};
+}
 ```
 
 ### ▶️ Adapter C: Advanced RAG Pipeline (`src/services/ai/adapters/rag.adapter.ts`)
@@ -152,15 +173,19 @@ export const geminiAdapter: IAIService = {
 ```tsx
 // A brilliant pattern: The RAG adapter implements the exact same interface,
 // entirely hiding the complexity of vector embeddings from your controller.
-import { IAIService, IGenerateInput } from '../ai.interface';
-import { openAIAdapter } from './openai.adapter'; // Fallback LLM engine
+import { IAIService, IGenerateInput } from "../ai.interface"
+import { openAIAdapter } from "./openai.adapter" // Fallback LLM engine
 // import { queryVectorDB } from '../../vector/pinecone.service';
 
 export const ragPipelineAdapter: IAIService = {
   async generateText(input: IGenerateInput): Promise<string> {
     // 1. Intercept the prompt and convert it to an embedding vector (Mocked here)
-    console.log('🔍 Querying Vector DB for semantic context related to:', input.prompt);
-    const retrievedContext = "Document Snippet: LinkNote API limits payload bodies to 10kb.";
+    console.log(
+      "🔍 Querying Vector DB for semantic context related to:",
+      input.prompt
+    )
+    const retrievedContext =
+      "Document Snippet: LinkNote API limits payload bodies to 10kb."
 
     // 2. Dynamically stitch the retrieved vector context into the prompt
     const enrichedPrompt = `
@@ -169,23 +194,23 @@ export const ragPipelineAdapter: IAIService = {
       Context: ${retrievedContext}
       
       User Query: ${input.prompt}
-    `;
+    `
 
     // 3. Delegate the enriched prompt to our standard LLM adapter
     return await openAIAdapter.generateText({
       ...input,
       prompt: enrichedPrompt,
-    });
+    })
   },
 
   async streamText(input: IGenerateInput): Promise<AsyncIterable<string>> {
     // Execute the same semantic search enrichment, then return the stream
-    const retrievedContext = "Retrieved Context Data...";
-    const enrichedPrompt = `Context: ${retrievedContext}\n\nQuery: ${input.prompt}`;
+    const retrievedContext = "Retrieved Context Data..."
+    const enrichedPrompt = `Context: ${retrievedContext}\n\nQuery: ${input.prompt}`
 
-    return await openAIAdapter.streamText({ ...input, prompt: enrichedPrompt });
+    return await openAIAdapter.streamText({ ...input, prompt: enrichedPrompt })
   },
-};
+}
 ```
 
 ---
@@ -195,41 +220,41 @@ export const ragPipelineAdapter: IAIService = {
 Notice how incredibly clean the transport layer remains. The controller simply imports the dynamically resolved `aiService` from the factory. If you switch `AI_PROVIDER=gemini` to `AI_PROVIDER=rag` in your `.env`, this code does not change at all.
 
 ```tsx
-import { Request, Response } from 'express';
+import { Request, Response } from "express"
 // Controller talks strictly to the dynamically resolved service instance
-import { aiService } from '../services/ai/ai.factory'; 
-import { asyncHandler } from '../utils/asyncHandler';
+import { aiService } from "../services/ai/ai.factory"
+import { asyncHandler } from "../utils/asyncHandler"
 
 export const askAI = asyncHandler(async (req: Request, res: Response) => {
-  const { prompt } = req.body;
+  const { prompt } = req.body
 
   // Seamless execution regardless of the underlying engine
-  const answer = await aiService.generateText({ 
-    prompt, 
-    systemPrompt: 'You are an expert full-stack developer.' 
-  });
+  const answer = await aiService.generateText({
+    prompt,
+    systemPrompt: "You are an expert full-stack developer.",
+  })
 
-  res.status(200).json({ status: 'success', data: { answer } });
-});
+  res.status(200).json({ status: "success", data: { answer } })
+})
 
 export const streamAI = asyncHandler(async (req: Request, res: Response) => {
-  const prompt = req.query.prompt as string;
+  const prompt = req.query.prompt as string
 
   // The adapter guarantees that streamText always returns a standard AsyncIterable<string>
-  const stream = await aiService.streamText({ prompt });
+  const stream = await aiService.streamText({ prompt })
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
+  res.setHeader("Content-Type", "text/event-stream")
+  res.setHeader("Cache-Control", "no-cache")
+  res.setHeader("Connection", "keep-alive")
+  res.flushHeaders()
 
   for await (const chunk of stream) {
-    res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
+    res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
   }
 
-  res.write('data: [DONE]\n\n');
-  res.end();
-});
+  res.write("data: [DONE]\n\n")
+  res.end()
+})
 ```
 
 ---

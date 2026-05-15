@@ -1,4 +1,17 @@
-📂 Phase 1: Workspace Scaffolding & Architecture
+---
+title: "📂 Phase 1: Workspace Scaffolding & Architecture"
+description: "Establish a clean, scalable **Layered Architecture** (3-tier architecture) from minute one. By strictly separating network transport (Express), business rules (Services), and data persistence (Models), the codebase remains highly maintainable, testable, and decoupled as it grows."
+language: "nodejs"
+category: "Folder-Structure"
+tags:
+  - nodejs
+  - architecture
+  - phase-1
+difficulty: "beginner"
+date: "2026-05-15"
+slug: "phase-1"
+related: []
+---
 
 ## 🎯 Phase Objective
 
@@ -62,16 +75,16 @@ echo "✅ Workspace scaffolded successfully! Keep building."
 
 To keep the codebase modular, every file belongs to a specific layer. **Never mix layer responsibilities.**
 
-| **Directory** | **Core Responsibility** | **Strict Boundary Rules** |
-| --- | --- | --- |
-| **`src/config/`** | Centralizes third-party connections and environment variables. | Contains setup for databases, caching (Redis), or payment gateways. No business logic. |
-| **`src/controllers/`** | The **Transport Layer**. Extracts incoming HTTP requests and formats responses. | **Never write database queries here.** Validates inputs, calls a Service, and returns JSON. |
-| **`src/services/`** | The **Business Logic Layer**. The heart of the application. | Executes domain rules and DB operations. **Must remain entirely agnostic of HTTP objects (`req`/`res`).** |
-| **`src/models/`** | The **Persistence Layer**. Defines database schemas and data types. | Houses Mongoose schemas, hooks, and TypeScript interfaces representing database entities. |
-| **`src/routes/`** | The **Traffic Router**. Maps HTTP verbs and endpoints to specific Controllers. | **Zero logic.** Purely acts as a routing dictionary (e.g., `POST /register` $\rightarrow$ `registerUser`). |
-| **`src/middlewares/`** | Interceptors that execute between receiving a request and hitting a controller. | Handles authentication guards, global error catching, rate limiting, and request logging. |
-| **`src/validations/`** | Defines the exact data shapes expected from clients. | Houses Joi/Zod schemas to ensure fail-fast payload validation before processing. |
-| **`src/utils/`** | Reusable helpers, custom error classes, and generic wrappers. | Pure functions, formatters, and utilities (like `AppError` and `asyncHandler`). |
+| **Directory**          | **Core Responsibility**                                                         | **Strict Boundary Rules**                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **`src/config/`**      | Centralizes third-party connections and environment variables.                  | Contains setup for databases, caching (Redis), or payment gateways. No business logic.                     |
+| **`src/controllers/`** | The **Transport Layer**. Extracts incoming HTTP requests and formats responses. | **Never write database queries here.** Validates inputs, calls a Service, and returns JSON.                |
+| **`src/services/`**    | The **Business Logic Layer**. The heart of the application.                     | Executes domain rules and DB operations. **Must remain entirely agnostic of HTTP objects (`req`/`res`).**  |
+| **`src/models/`**      | The **Persistence Layer**. Defines database schemas and data types.             | Houses Mongoose schemas, hooks, and TypeScript interfaces representing database entities.                  |
+| **`src/routes/`**      | The **Traffic Router**. Maps HTTP verbs and endpoints to specific Controllers.  | **Zero logic.** Purely acts as a routing dictionary (e.g., `POST /register` $\rightarrow$ `registerUser`). |
+| **`src/middlewares/`** | Interceptors that execute between receiving a request and hitting a controller. | Handles authentication guards, global error catching, rate limiting, and request logging.                  |
+| **`src/validations/`** | Defines the exact data shapes expected from clients.                            | Houses Joi/Zod schemas to ensure fail-fast payload validation before processing.                           |
+| **`src/utils/`**       | Reusable helpers, custom error classes, and generic wrappers.                   | Pure functions, formatters, and utilities (like `AppError` and `asyncHandler`).                            |
 
 ---
 
@@ -85,16 +98,16 @@ We intentionally split application initialization into two distinct files. This 
 - **Rule:** Does **not** bind to a network port or connect to databases.
 
 ```tsx
-import express, { Application, Request, Response } from 'express';
+import express, { Application, Request, Response } from "express"
 
 // TODO: Import app-specific global security/utility middlewares (e.g., cors, helmet)
 
-const app: Application = express();
+const app: Application = express()
 
 // ==========================================
 // 1. GLOBAL MIDDLEWARES
 // ==========================================
-app.use(express.json()); // Universal: Parses incoming JSON payloads
+app.use(express.json()) // Universal: Parses incoming JSON payloads
 
 // STEP 1: Add app-specific standard middlewares here based on project needs
 // Example: app.use(cors());
@@ -104,13 +117,13 @@ app.use(express.json()); // Universal: Parses incoming JSON payloads
 // 2. HEALTH CHECK (Universal / Repeated)
 // ==========================================
 // Required by hosting platforms (AWS, Render, etc.) to verify container health
-app.get('/health', (req: Request, res: Response) => {
+app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({
-    status: 'success',
-    message: 'API is running normally.',
+    status: "success",
+    message: "API is running normally.",
     timestamp: new Date().toISOString(),
-  });
-});
+  })
+})
 
 // ==========================================
 // 3. FEATURE ROUTES (App-Specific Placeholders)
@@ -130,7 +143,7 @@ app.get('/health', (req: Request, res: Response) => {
 // STEP 5: Mount the centralized global error handler middleware LAST
 // Example: app.use(errorHandler);
 
-export default app;
+export default app
 ```
 
 ---
@@ -141,12 +154,12 @@ export default app;
 - **Rule:** Only executes when spinning up the live development or production server.
 
 ```tsx
-import app from './app';
+import app from "./app"
 
 // STEP 1: Import database initialization utility (Configured in Phase 3)
 // Example: import connectDB from './config/db';
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000
 
 const startServer = async () => {
   try {
@@ -160,15 +173,14 @@ const startServer = async () => {
     // 2. START NETWORK LISTENER
     // ==========================================
     app.listen(PORT, () => {
-      console.log(`🚀 Server is running on http://localhost:${PORT}`);
-    });
-
+      console.log(`🚀 Server is running on http://localhost:${PORT}`)
+    })
   } catch (error) {
     // Fail-fast: If infrastructure fails to boot, kill the container immediately
-    console.error('❌ Critical failure during server startup:', error);
-    process.exit(1); 
+    console.error("❌ Critical failure during server startup:", error)
+    process.exit(1)
   }
-};
+}
 
-startServer();
+startServer()
 ```
