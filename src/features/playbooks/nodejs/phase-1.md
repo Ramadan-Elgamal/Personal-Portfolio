@@ -1,0 +1,174 @@
+📂 Phase 1: Workspace Scaffolding & Architecture
+
+## 🎯 Phase Objective
+
+Establish a clean, scalable **Layered Architecture** (3-tier architecture) from minute one. By strictly separating network transport (Express), business rules (Services), and data persistence (Models), the codebase remains highly maintainable, testable, and decoupled as it grows.
+
+---
+
+## 🛠️ 1. The Automated Scaffold Script
+
+- **Type:** Universal / Repeated Code
+- **Action:** Run this bash script in your terminal to instantly generate the production folder structure and base configuration files.
+
+```bash
+#!/bin/bash
+
+# Exit immediately if any command exits with a non-zero status
+set -e
+
+echo "🚀 Scaffolding Production Node.js/Express Workspace..."
+
+# 1. Create project directory and initialize npm
+mkdir my-node-app
+cd my-node-app
+npm init -y > /dev/null
+
+# 2. Scaffold the Layered Architecture directories
+mkdir -p src/{config,controllers,middlewares,models,routes,services,utils,validations}
+
+# 3. Create decoupled entry points
+touch src/app.ts src/server.ts
+
+# 4. Create environment and documentation files
+touch .env .env.example .gitignore README.md
+
+# 5. Populate base .gitignore
+cat <<EOT >> .gitignore
+# Dependency directories
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+EOT
+
+echo "✅ Workspace scaffolded successfully! Keep building."
+```
+
+---
+
+## 🏛️ 2. Directory Anatomy & Rules of Engagement
+
+To keep the codebase modular, every file belongs to a specific layer. **Never mix layer responsibilities.**
+
+| **Directory** | **Core Responsibility** | **Strict Boundary Rules** |
+| --- | --- | --- |
+| **`src/config/`** | Centralizes third-party connections and environment variables. | Contains setup for databases, caching (Redis), or payment gateways. No business logic. |
+| **`src/controllers/`** | The **Transport Layer**. Extracts incoming HTTP requests and formats responses. | **Never write database queries here.** Validates inputs, calls a Service, and returns JSON. |
+| **`src/services/`** | The **Business Logic Layer**. The heart of the application. | Executes domain rules and DB operations. **Must remain entirely agnostic of HTTP objects (`req`/`res`).** |
+| **`src/models/`** | The **Persistence Layer**. Defines database schemas and data types. | Houses Mongoose schemas, hooks, and TypeScript interfaces representing database entities. |
+| **`src/routes/`** | The **Traffic Router**. Maps HTTP verbs and endpoints to specific Controllers. | **Zero logic.** Purely acts as a routing dictionary (e.g., `POST /register` $\rightarrow$ `registerUser`). |
+| **`src/middlewares/`** | Interceptors that execute between receiving a request and hitting a controller. | Handles authentication guards, global error catching, rate limiting, and request logging. |
+| **`src/validations/`** | Defines the exact data shapes expected from clients. | Houses Joi/Zod schemas to ensure fail-fast payload validation before processing. |
+| **`src/utils/`** | Reusable helpers, custom error classes, and generic wrappers. | Pure functions, formatters, and utilities (like `AppError` and `asyncHandler`). |
+
+---
+
+## 🚪 3. Decoupled Entry Points baseline Code
+
+We intentionally split application initialization into two distinct files. This prevents network port conflicts during automated integration testing and keeps infrastructure concerns cleanly separated.
+
+### `src/app.ts` (Application Setup)
+
+- **Purpose:** Initializes Express, registers global middlewares, attaches routes, and sets up error handling.
+- **Rule:** Does **not** bind to a network port or connect to databases.
+
+```tsx
+import express, { Application, Request, Response } from 'express';
+
+// TODO: Import app-specific global security/utility middlewares (e.g., cors, helmet)
+
+const app: Application = express();
+
+// ==========================================
+// 1. GLOBAL MIDDLEWARES
+// ==========================================
+app.use(express.json()); // Universal: Parses incoming JSON payloads
+
+// STEP 1: Add app-specific standard middlewares here based on project needs
+// Example: app.use(cors());
+// Example: app.use(helmet());
+
+// ==========================================
+// 2. HEALTH CHECK (Universal / Repeated)
+// ==========================================
+// Required by hosting platforms (AWS, Render, etc.) to verify container health
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'API is running normally.',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ==========================================
+// 3. FEATURE ROUTES (App-Specific Placeholders)
+// ==========================================
+// STEP 2: Import your feature routers here
+// Example: import userRoutes from './routes/user.routes';
+
+// STEP 3: Mount the routers to their base API paths
+// Example: app.use('/api/v1/users', userRoutes);
+
+// ==========================================
+// 4. GLOBAL ERROR HANDLING (Configured in Phase 6)
+// ==========================================
+// STEP 4: Catch-all for unmapped routes (404 handler)
+// Example: app.all('*', (req, res, next) => { ... });
+
+// STEP 5: Mount the centralized global error handler middleware LAST
+// Example: app.use(errorHandler);
+
+export default app;
+```
+
+---
+
+### `src/server.ts` (Network & Infrastructure Binding)
+
+- **Purpose:** Imports the fully configured `app`, verifies vital infrastructure connections (like MongoDB), and binds to the network port.
+- **Rule:** Only executes when spinning up the live development or production server.
+
+```tsx
+import app from './app';
+
+// STEP 1: Import database initialization utility (Configured in Phase 3)
+// Example: import connectDB from './config/db';
+
+const PORT = process.env.PORT || 3000;
+
+const startServer = async () => {
+  try {
+    // ==========================================
+    // 1. INFRASTRUCTURE BOOTSTRAP
+    // ==========================================
+    // STEP 2: Await database connection BEFORE accepting HTTP traffic
+    // Example: await connectDB();
+
+    // ==========================================
+    // 2. START NETWORK LISTENER
+    // ==========================================
+    app.listen(PORT, () => {
+      console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    });
+
+  } catch (error) {
+    // Fail-fast: If infrastructure fails to boot, kill the container immediately
+    console.error('❌ Critical failure during server startup:', error);
+    process.exit(1); 
+  }
+};
+
+startServer();
+```

@@ -1,0 +1,343 @@
+☁️ Phase 16 (Optional): Secure Cloud File Management (Pre-signed URLs)
+---
+
+## 🎯 Phase Objective
+
+Completely offload file processing bandwidth and disk I/O from the backend application layer. We implement the **AWS SDK v3** to establish a secure, decoupled **Pre-signed URL Upload Pipeline**:
+
+1. **The Gatekeeper (Controller/Service):** Validates the requested file's metadata (MIME type, size limits) via Joi, verifies user authentication, and generates a temporary, cryptographically signed `PUT` URL.
+2. **Direct Client Upload:** The frontend securely pipes the heavy byte payload directly to the cloud storage bucket using the issued signature, completely bypassing our Express application containers.
+3. **Private Read Access:** Generates temporary `GET` signatures to authorize authenticated users to view private assets statelessly.
+
+---
+
+## 📦 1. Core Dependency Installation
+
+- **Type:** Optional Expansion
+- **Action:** Run this command to install the modular AWS S3 client and the request presigner.
+
+> **💡 Storage Agnostic Note:** The official `@aws-sdk` is the industry standard. Because Cloudflare R2, DigitalOcean Spaces, and Backblaze B2 all provide S3-compatible APIs, this exact same package and code will work flawlessly regardless of which cloud provider you choose.
+> 
+
+```bash
+# Install the modular AWS S3 client and the cryptographic presigning utility
+npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+```
+
+*(Note: The AWS SDK v3 is natively written in TypeScript and includes comprehensive types out of the box).*
+
+---
+
+## 🎛️ 2. The Fail-Fast Storage Connector (`src/config/storage.ts`)
+
+- **Type:** App-Specific Expansion
+- **Action:** Create `src/config/storage.ts` to initialize and export your S3 client singleton.
+
+This file pulls required credentials from the environment, verifies their existence at startup, and establishes the connection parameters.
+
+```tsx
+import { S3Client } from '@aws-sdk/client-s3';
+import { logger } from './logger';
+
+const getS3Client = (): S3Client => {
+  const region = process.env.STORAGE_REGION;
+  const accessKeyId = process.env.STORAGE_ACCESS_KEY;
+  const secretAccessKey = process.env.STORAGE_SECRET_KEY;
+  // Optional endpoint override (crucial if using Cloudflare R2 or DigitalOcean Spaces)
+  const endpoint = process.env.STORAGE_ENDPOINT;
+
+  if (!region || !accessKeyId || !secretAccessKey) {
+    logger.error('❌ CRITICAL: Cloud storage credentials missing from environment variables.');
+    throw new Error('Storage features are disabled due to missing configuration.');
+  }
+
+  return new S3Client({
+    region,
+    credentials: {
+      accessKeyId,
+      secretAccessKey,
+    },
+    ...(endpoint && { endpoint }),
+  });
+};
+
+// Export a robust singleton instance of the configured S3 client
+export const s3Client = getS3Client();
+
+// Stateless getter for the designated storage bucket name
+export const getBucketName = (): string => {
+  const bucket = process.env.STORAGE_BUCKET_NAME;
+  if (!bucket) {
+    throw new Error('❌ CRITICAL: STORAGE_BUCKET_NAME is not defined.');
+  }
+  return bucket;
+};
+```
+
+---
+
+## 🧠 3. The Cryptographic Storage Service (`src/services/storage.service.ts`)
+
+- **Type:** Universal Core for File Storage
+- **Action:** Create `src/services/storage.service.ts`.
+
+This service encapsulates the complex cryptographic signing commands, ensuring your controllers remain entirely focused on HTTP transport flow.
+
+```tsx
+import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { s3Client, getBucketName } from '../config/storage';
+import { AppError } from '../utils/AppError';
+import { logger } from '../config/logger';
+
+export interface IGenerateUploadSignatureInput {
+  userId: string;
+  fileName: string;
+  contentType: string; // e.g., 'image/jpeg', 'application/pdf'
+}
+
+export const storageService = {
+  /**
+   * Generates a temporary, pre-signed PUT URL that allows a client to upload 
+   * exactly one specific file directly to cloud storage.
+   */
+  async generatePreSignedPutUrl(input: IGenerateUploadSignatureInput) {
+    try {
+      // 1. Sanitize file name and construct a secure, collision-free storage key inside a user namespace
+      const sanitizedFileName = input.fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const uniqueTimestamp = Date.now();
+      const storageKey = `uploads/users/${input.userId}/${uniqueTimestamp}-${sanitizedFileName}`;
+
+      // 2. Instantiate the exact S3 PutObject command rules
+      const command = new PutObjectCommand({
+        Bucket: getBucketName(),
+        Key: storageKey,
+        ContentType: input.contentType,
+      });
+
+      // 3. Cryptographically sign the request, enforcing a strict 5-minute (300 seconds) expiration window
+      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
+
+      logger.info(`🔑 Issued pre-signed PUT signature for key: ${storageKey}`);
+
+      return {
+        uploadUrl: signedUrl,
+        storageKey, // The identifier saved to MongoDB to track the file asset later
+        publicUrl: process.env.STORAGE_PUBLIC_DOMAIN 
+          ? `${process.env.STORAGE_PUBLIC_DOMAIN}/${storageKey}`
+          : undefined,
+      };
+    } catch (error: any) {
+      logger.error({ err: error, input }, '❌ Failed to generate pre-signed upload URL.');
+      throw new AppError('Storage service failed to issue upload cryptographic signature.', 500);
+    }
+  },
+
+  /**
+   * Generates a temporary, pre-signed GET URL to grant secure read access to a private asset.
+   */
+  async generatePreSignedGetUrl(storageKey: string, expiresInSeconds: number = 3600): Promise<string> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: getBucketName(),
+        Key: storageKey,
+      });
+
+      // Issue a signature authorizing read access for the specified TTL (default 1 hour)
+      return await getSignedUrl(s3Client, command, { expiresIn: expiresInSeconds });
+    } catch (error: any) {
+      logger.error({ err: error, storageKey }, '❌ Failed to generate pre-signed read URL.');
+      throw new AppError('Storage service failed to issue read cryptographic signature.', 500);
+    }
+  },
+};
+```
+
+---
+
+## 🚦 4. The Secure Gatekeeper Controller (`src/controllers/storage.controller.ts`)
+
+- **Type:** App-Specific Expansion
+- **Action:** Create `src/controllers/storage.controller.ts`.
+
+Notice the strict safety barrier: we use Joi to proactively validate incoming MIME types and file sizes. If a user attempts to request an upload signature for an executable script (`.exe`) or an unsupported format, the request is instantly rejected before hitting the S3 SDK.
+
+```tsx
+import { Request, Response } from 'express';
+import { storageService } from '../services/storage.service';
+import { asyncHandler } from '../utils/asyncHandler';
+import { AppError } from '../utils/AppError';
+import Joi from 'joi';
+
+// ==========================================
+// 1. STRICT FILE METADATA GATEKEEPER SCHEMAS
+// ==========================================
+// Define an explicit whitelist of supported MIME types
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+// Define maximum expected byte size (e.g., 10MB = 10 * 1024 * 1024 bytes)
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; 
+
+const requestUploadSignatureSchema = Joi.object({
+  fileName: Joi.string().max(255).required(),
+  contentType: Joi.string()
+    .valid(...ALLOWED_MIME_TYPES)
+    .required()
+    .messages({
+      'any.only': `Unsupported file format. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`,
+    }),
+  fileSizeBytes: Joi.number().max(MAX_FILE_SIZE_BYTES).required().messages({
+    'number.max': 'File size exceeds the maximum allowed limit of 10MB.',
+  }),
+});
+
+// ==========================================
+// 2. ISSUE UPLOAD SIGNATURE (PUT)
+// ==========================================
+export const requestUploadUrl = asyncHandler(async (req: Request, res: Response) => {
+  // Safety Check: Verify user context exists via Phase 7 Auth Middleware
+  if (!req.user) throw new AppError('Authentication context required to authorize uploads.', 401);
+
+  // 1. Fail-fast payload validation
+  const { error, value } = requestUploadSignatureSchema.validate(req.body);
+  if (error) throw new AppError(error.details[0].message, 400);
+
+  // 2. Delegate to the cryptographic signing service
+  const signatureData = await storageService.generatePreSignedPutUrl({
+    userId: req.user.id,
+    fileName: value.fileName,
+    contentType: value.contentType,
+  });
+
+  // 3. Send successful authorization payload back to the client
+  res.status(200).json({
+    status: 'success',
+    message: 'Upload cryptographic signature issued successfully. Valid for 5 minutes.',
+    data: signatureData,
+  });
+});
+
+// ==========================================
+// 3. ISSUE PRIVATE READ SIGNATURE (GET)
+// ==========================================
+export const requestPrivateReadUrl = asyncHandler(async (req: Request, res: Response) => {
+  const { storageKey } = req.query;
+  
+  if (!storageKey || typeof storageKey !== 'string') {
+    throw new AppError('A valid storageKey query parameter is required.', 400);
+  }
+
+  // Authorize read access and issue temporary GET URL
+  const signedReadUrl = await storageService.generatePreSignedGetUrl(storageKey);
+
+  res.status(200).json({
+    status: 'success',
+    data: { readUrl: signedReadUrl },
+  });
+});
+```
+
+---
+
+## 🗺️ 5. Mounting Storage Routes (`src/routes/storage.routes.ts`)
+
+- **Type:** App-Specific Expansion
+- **Action:** Create `src/routes/storage.routes.ts` and mount it to your main `app.ts` file under `/api/v1/storage`.
+
+```tsx
+import { Router } from 'express';
+import { requestUploadUrl, requestPrivateReadUrl } from '../controllers/storage.controller';
+import { requireAuth } from '../middlewares/auth.middleware'; // Phase 7 Guard
+import { authLimiter } from '../config/security'; // Phase 8 Aggressive Throttling
+
+const router = Router();
+
+// Protect storage infrastructure with strict authentication and request limits
+router.use(requireAuth);
+router.use(authLimiter);
+
+// POST /api/v1/storage/upload-signature -> Requests permission to upload a file
+router.post('/upload-signature', requestUploadUrl);
+
+// GET /api/v1/storage/read-signature?storageKey=uploads/users/... -> Requests access to read a private asset
+router.get('/read-signature', requestPrivateReadUrl);
+
+export default router;
+```
+
+---
+
+## 🔒 6. Environment Variables Update (`.env`)
+
+Append your required cloud storage parameters to your local `.env` and `.env.example` files:
+
+```
+# Cloud Storage Infrastructure (AWS S3, Cloudflare R2, or DigitalOcean Spaces)
+STORAGE_REGION=us-east-1
+STORAGE_BUCKET_NAME=my-production-app-bucket
+STORAGE_ACCESS_KEY=your_access_key_id
+STORAGE_SECRET_KEY=your_secret_access_key
+
+# Optional: Override endpoint specifically if using Cloudflare R2 or DO Spaces
+# STORAGE_ENDPOINT=https://<account_id>.r2.cloudflarestorage.com
+
+# Optional: Public CDN domain if your storage bucket is configured for public reads
+# STORAGE_PUBLIC_DOMAIN=https://cdn.myproductionapp.com
+```
+
+---
+
+## 📤 7. Frontend Integration Blueprint (How Clients Consume This)
+
+- **Type:** Universal Reference Guide
+- **Action:** Include this instructional code snippet in your Notion playbook so you (or frontend developers consuming your API) know exactly how to execute direct uploads using the issued signatures.
+
+```jsx
+// Example Frontend Upload Implementation (Vanilla JS / React)
+async function uploadFileDirectlyToCloud(fileObject) {
+  // 1. Request cryptographic upload permission from our Express backend
+  const authResponse = await fetch('/api/v1/storage/upload-signature', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('jwt_token')}` 
+    },
+    body: JSON.stringify({
+      fileName: fileObject.name,
+      contentType: fileObject.type,
+      fileSizeBytes: fileObject.size
+    })
+  });
+
+  const { data } = await authResponse.json();
+  const { uploadUrl, storageKey, publicUrl } = data;
+
+  // 2. Upload the raw byte stream DIRECTLY to cloud storage via the issued pre-signed PUT URL
+  // CRITICAL: The headers sent to S3 must match the exact Content-Type used to generate the signature!
+  const uploadResult = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': fileObject.type },
+    body: fileObject
+  });
+
+  if (!uploadResult.ok) throw new Error('Cloud storage upload failed.');
+
+  console.log('✅ File successfully uploaded to cloud storage! Key:', storageKey);
+  
+  // 3. Return the storageKey to attach to your database models (e.g., updating user avatarKey)
+  return storageKey; 
+}
+```
+
+---
+
+## 🔍 Next Steps Checklist
+
+- [ ]  Create a dedicated page for Phase 16 under your "📦 Advanced & Optional Modules" Notion section.
+- [ ]  Install `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` via NPM.
+- [ ]  Set up your storage bucket (AWS S3, Cloudflare R2, or DO Spaces) and populate your `.env` keys.
+- [ ]  Create `src/config/storage.ts` and `src/services/storage.service.ts`.
+- [ ]  Implement your metadata validation whitelist inside `src/controllers/storage.controller.ts`.
+- [ ]  Mount `storage.routes.ts` under `/api/v1/storage` inside `src/app.ts`.
+- [ ]  Test the full loop via Postman or your frontend: request a signature, execute a `PUT` request with an attached raw file to the issued URL, and verify the file successfully lands inside your cloud bucket.
+
+---

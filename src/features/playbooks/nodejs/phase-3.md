@@ -1,0 +1,122 @@
+📦 Phase 3: Robust Persistence (MongoDB)
+
+---
+
+## 🎯 Phase Objective
+
+Establish a secure, resilient connection to the database layer using Mongoose. We utilize a **Singleton pattern** that fails fast if configuration is missing, prevents connection leaks during hot-reloads, and actively monitors the database lifecycle for unexpected disconnections in production.
+
+---
+
+## 📥 1. Core Dependency Installation
+
+- **Type:** Universal / Repeated Code
+- **Action:** Run this command in your terminal to install Mongoose. *(Note: Mongoose 6+ includes native TypeScript definitions out of the box).*
+
+```bash
+npm install mongoose
+```
+
+---
+
+## 🔌 2. The Fail-Fast Database Connector (`src/config/db.ts`)
+
+- **Type:** Universal / Repeated Code
+- **Action:** Create `src/config/db.ts` and paste the robust connection logic below.
+
+This module guarantees that our API never attempts to process data without an active database connection and attaches persistent listeners to log runtime drops.
+
+```tsx
+import mongoose from 'mongoose';
+
+const connectDB = async (): Promise<void> => {
+  const mongoURI = process.env.MONGO_URI;
+
+  // ==========================================
+  // 1. FAIL-FAST VALIDATION
+  // ==========================================
+  if (!mongoURI) {
+    console.error('❌ CRITICAL: MONGO_URI is not defined in the environment variables.');
+    process.exit(1); // Kill the container immediately
+  }
+
+  try {
+    // ==========================================
+    // 2. INITIAL CONNECTION
+    // ==========================================
+    const conn = await mongoose.connect(mongoURI);
+    console.log(`📦 MongoDB Connected successfully: ${conn.connection.host}`);
+
+    // ==========================================
+    // 3. LIFECYCLE EVENT MONITORS
+    // ==========================================
+    // Attached AFTER initial boot to catch runtime drops (network blips, server restarts)
+    mongoose.connection.on('disconnected', () => {
+      console.warn('⚠️ MongoDB Disconnected! API may fail to process incoming reads/writes.');
+    });
+
+    mongoose.connection.on('error', (err) => {
+      console.error(`❌ MongoDB Runtime Connection Error: ${err}`);
+    });
+
+  } catch (error) {
+    console.error(`❌ Initial MongoDB Connection Failed: ${(error as Error).message}`);
+    process.exit(1);
+  }
+};
+
+export default connectDB;
+```
+
+---
+
+## 🔗 3. Wiring Persistence to the Server Boot (`src/server.ts`)
+
+- **Type:** App-Specific Baseline / Updates Phase 1 Placeholders
+- **Action:** Open your existing `src/server.ts` file and replace the placeholder comments with our actual database boot logic.
+
+**CRITICAL RULE:** Always `await connectDB()` *before* calling `app.listen()`. Never open the HTTP gates if the database is down.
+
+```tsx
+import app from './app';
+import connectDB from './config/db'; // <-- 1. Import connector
+
+const PORT = process.env.PORT || 3000;
+
+const startServer = async () => {
+  try {
+    // ==========================================
+    // 1. INFRASTRUCTURE BOOTSTRAP
+    // ==========================================
+    console.log('⏳ Initializing database connection...');
+    await connectDB(); // <-- 2. Await database BEFORE network binding
+
+    // STEP 1: Placeholder for other external services (Redis, message queues) if required
+    
+
+    // ==========================================
+    // 2. START NETWORK LISTENER
+    // ==========================================
+    app.listen(PORT, () => {
+      console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    });
+
+  } catch (error) {
+    console.error('❌ Critical failure during server startup:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
+```
+
+---
+
+## 🔍 Next Steps Checklist
+
+- [ ]  Install `mongoose` via NPM.
+- [ ]  Ensure your local `.env` file has a valid `MONGO_URI` key (e.g., `MONGO_URI=mongodb://127.0.0.1:27017/my_app`).
+- [ ]  Create `src/config/db.ts` with the Singleton connection logic.
+- [ ]  Update `src/server.ts` to enforce the strict boot order.
+- [ ]  Run `npm run dev` in your terminal to verify both the server boot and the `📦 MongoDB Connected` success logs.
+- [ ]  Proceed to **Phase 4** to configure secure domain entities, Mongoose models, and dual-layer input validation.

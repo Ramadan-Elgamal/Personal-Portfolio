@@ -1,0 +1,186 @@
+🧪 Phase 10: Automated Testing Strategy (Jest & Supertest)
+## 🎯 Phase Objective
+
+Establish a reliable, automated testing pipeline for your API endpoints. By leveraging our decoupled architecture—where `src/app.ts` exports the raw Express app without binding to a network port—we can use **Supertest** to execute blazing-fast integration tests directly against our routing layer. We use **Jest** as our runner and assertion engine to ensure our code works exactly as intended before every deployment.
+
+---
+
+## 📦 1. Core Dependency Installation
+
+- **Type:** Universal / Repeated Code
+- **Action:** Run these commands to install Jest, Supertest, and the necessary TypeScript compilation adapters.
+
+```bash
+# Install Jest test runner and Supertest for HTTP assertions
+npm install -D jest supertest ts-jest
+
+# Install TypeScript ambient definitions for the testing environment
+npm install -D @types/jest @types/supertest
+```
+
+---
+
+## 🎛️ 2. Jest Configuration (`jest.config.ts`)
+
+- **Type:** Universal / Repeated Code
+- **Action:** Create `jest.config.ts` in the root directory.
+
+This configuration tells Jest to use `ts-jest` to compile our TypeScript files on the fly during testing, ignoring the compiled `dist/` folder and heavy node modules.
+
+```tsx
+import type { Config } from 'jest';
+
+const config: Config = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  verbose: true,
+  forceExit: true, // Forces Jest to exit after all tests complete (useful if DB connections linger)
+  clearMocks: true,
+  
+  // Look for test files ending in .test.ts or .spec.ts inside the src directory
+  testMatch: ['**/src/**/*.test.ts', '**/src/**/*.spec.ts'],
+  
+  // Ignore build outputs and dependencies
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  
+  // Optional: Set coverage thresholds if you want CI/CD pipelines to enforce test density
+  collectCoverageFrom: [
+    'src/controllers/**/*.ts',
+    'src/services/**/*.ts',
+    'src/utils/**/*.ts',
+  ],
+};
+
+export default config;
+```
+
+---
+
+## 📜 3. Updating Execution Scripts (`package.json`)
+
+- **Type:** Universal / Repeated Code
+- **Action:** Open your `package.json` and append these testing commands to your scripts dictionary.
+
+```json
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    // ... previous scripts remain intact
+  },
+```
+
+### Script Anatomy:
+
+- **`npm test`**: Runs the complete test suite once. Perfect for pre-push git hooks or CI/CD pipelines.
+- **`npm run test:watch`**: Boots Jest in watch mode. It monitors saved files and runs only the tests related to the modified code. Highly recommended during active development.
+- **`npm run test:coverage`**: Generates a detailed report showing exactly what percentage of your codebase is covered by assertions.
+
+---
+
+## 🌐 4. Universal Baseline Test (`src/__tests__/health.test.ts`)
+
+- **Type:** Universal / Repeated Code
+- **Action:** Create a `src/__tests__/` directory and add `health.test.ts`.
+
+This test validates that your base application scaffolds correctly, parses JSON, and returns the expected health check payload without starting a real HTTP server.
+
+```tsx
+import request from 'supertest';
+import app from '../app';
+
+describe('Universal Infrastructure Tests', () => {
+  
+  describe('GET /health', () => {
+    
+    it('should return 200 OK and a success message', async () => {
+      // Execute an in-memory HTTP request directly against the exported Express app
+      const response = await request(app).get('/health');
+
+      // Assert HTTP Status Code
+      expect(response.status).toBe(200);
+
+      // Assert JSON Payload Structure
+      expect(response.body).toHaveProperty('status', 'success');
+      expect(response.body).toHaveProperty('message', 'API is running normally.');
+      expect(response.body).toHaveProperty('timestamp');
+    });
+
+  });
+
+  describe('Global Safety Nets (404 Handler)', () => {
+    
+    it('should return 404 for non-existent routes', async () => {
+      const response = await request(app).get('/api/v1/route-does-not-exist');
+
+      expect(response.status).toBe(404);
+      expect(response.body).toHaveProperty('status', 'error');
+      expect(response.body.message).toMatch(/Cannot find/i);
+    });
+
+  });
+
+});
+```
+
+---
+
+## 🚦 5. Blueprint: Integration Testing Domain Routes
+
+- **Type:** App-Specific Implementation Blueprint
+- **Action:** Here is exactly how you draft integration tests for your feature endpoints (e.g., inside `src/__tests__/user.test.ts`).
+
+> **💡 Database Rule for Integration Tests:** When testing routes that read/write to the database, you must mock the Service layer, use a dedicated testing database, or use an in-memory MongoDB adapter (like `mongodb-memory-server`) to prevent polluting your local development data.
+> 
+
+```tsx
+import request from 'supertest';
+import app from '../app';
+// STEP 1: Import your database connector or mock utilities if required
+// import mongoose from 'mongoose';
+
+describe('Feature Integration: Authentication Pipeline', () => {
+  
+  // Optional: Setup and teardown real/in-memory database connections before testing
+  /*
+  beforeAll(async () => { await connectToTestDB(); });
+  afterAll(async () => { await mongoose.connection.close(); });
+  */
+
+  describe('POST /api/v1/users/register', () => {
+    
+    it('should reject requests that fail Joi payload validation', async () => {
+      const invalidPayload = {
+        name: 'A', // Too short based on our Phase 4 schema
+        email: 'not-an-email',
+      };
+
+      const response = await request(app)
+        .post('/api/v1/users/register')
+        .send(invalidPayload);
+
+      // Verify that our validation layer intercepts and fails fast
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('status', 'error');
+    });
+
+    // STEP 2: Add placeholder assertions for successful execution paths
+    /*
+    it('should successfully register a valid user and return 201 Created', async () => { ... });
+    */
+
+  });
+
+});
+```
+
+---
+
+## 🔍 Next Steps Checklist
+
+- [ ]  Install the Jest and Supertest dependencies via NPM.
+- [ ]  Create `jest.config.ts` at the root of your workspace.
+- [ ]  Add testing commands to `package.json`.
+- [ ]  Create `src/__tests__/health.test.ts` to verify the application boundary.
+- [ ]  Run `npm test` in your terminal. You should see passing green checkmarks for your health and 404 routes.
+- [ ]  Draft blueprint test files for your primary domain entities.

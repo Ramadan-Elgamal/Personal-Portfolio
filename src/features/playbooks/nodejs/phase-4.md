@@ -1,0 +1,152 @@
+🛡️ Phase 4: Domain Gatekeeping & Entities
+---
+
+## 🎯 Phase Objective
+
+Protect the application layer from dirty data using a **Dual-Layer Validation Strategy**.
+
+1. **The Transport Gatekeeper (Joi):** Validates incoming HTTP payloads immediately at the controller boundary. Fails fast, saving CPU cycles and database connections.
+2. **The Persistence Entity (Mongoose):** Enforces strict schema definitions, default values, and data integrity right before saving to MongoDB. Integrates automated lifecycle hooks to handle secure operations (like password hashing) transparently.
+
+---
+
+## 📦 1. Core Dependency Installation
+
+- **Type:** Universal / Repeated Code
+- **Action:** Run these commands to install our validation library (`joi`) and our password hashing utility (`bcryptjs`).
+
+```bash
+# Install Joi for schema validation and BcryptJS for secure hashing
+npm install joi bcryptjs
+
+# Install development type definitions for BcryptJS
+npm install -D @types/bcryptjs
+```
+
+---
+
+## 🧱 2. Persistence Layer: The Mongoose Model Baseline (`src/models/user.model.ts`)
+
+- **Type:** App-Specific Baseline / Blueprint Example
+- **Action:** Create `src/models/user.model.ts` to define your database schema.
+
+> **⚠️ CRITICAL ASYNC HOOK RULE:** > When writing Mongoose lifecycle hooks (`pre('save')`) using modern `async/await`, **never include or call the `next` callback parameter**. Mongoose automatically catches errors thrown inside async hooks; mixing callbacks with promises causes runtime crashes (`TypeError: next is not a function`).
+> 
+
+```tsx
+import mongoose, { Document, Schema } from 'mongoose';
+import bcrypt from 'bcryptjs';
+
+// ==========================================
+// 1. TYPESCRIPT DOCUMENT INTERFACE
+// ==========================================
+// STEP 1: Define the exact properties of your database document
+export interface IUser extends Document {
+  name: string;
+  email: string;
+  passwordHash: string; // Storing the hash, never the plain text
+  role: 'user' | 'admin';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ==========================================
+// 2. MONGOOSE SCHEMA DEFINITION
+// ==========================================
+const userSchema = new Schema<IUser>(
+  {
+    name: {
+      type: String,
+      required: [true, 'Name is required'],
+      trim: true,
+      maxlength: [50, 'Name cannot exceed 50 characters'],
+    },
+    email: {
+      type: String,
+      required: [true, 'Email is required'],
+      unique: true, // Creates a MongoDB index to enforce uniqueness
+      lowercase: true,
+      trim: true,
+    },
+    passwordHash: {
+      type: String,
+      required: [true, 'Password is required'],
+    },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
+    },
+  },
+  {
+    timestamps: true, // Automatically manages createdAt and updatedAt fields
+  }
+);
+
+// ==========================================
+// 3. SECURE LIFECYCLE HOOKS (No 'next' callback!)
+// ==========================================
+// Automatically hashes the password before saving it to the database
+userSchema.pre('save', async function () {
+  // Only run hashing costs if the password field was actually modified or is brand new
+  if (!this.isModified('passwordHash')) {
+    return;
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
+});
+
+// ==========================================
+// 4. MODEL EXPORT
+// ==========================================
+const User = mongoose.model<IUser>('User', userSchema);
+
+export default User;
+```
+
+---
+
+## 🚦 3. Transport Layer: Input Validation Schemas (`src/validations/user.validation.ts`)
+
+- **Type:** App-Specific Baseline / Blueprint Example
+- **Action:** Create `src/validations/user.validation.ts` to dictate the exact rules for incoming HTTP request bodies.
+
+```tsx
+import Joi from 'joi';
+
+// STEP 1: Define the strict shape expected for user registration payloads
+export const registerSchema = Joi.object({
+  name: Joi.string().min(2).max(50).required().messages({
+    'string.empty': 'Name cannot be empty',
+    'string.min': 'Name must be at least 2 characters long',
+    'any.required': 'Name is a required field',
+  }),
+  
+  email: Joi.string().email().required().messages({
+    'string.email': 'Please provide a valid email address',
+    'any.required': 'Email is a required field',
+  }),
+  
+  // Accept 'password' from the client, though we store it as 'passwordHash' in DB
+  password: Joi.string().min(6).max(128).required().messages({
+    'string.min': 'Password must be at least 6 characters long',
+    'any.required': 'Password is a required field',
+  }),
+});
+
+// STEP 2: Define the shape expected for authentication/login payloads
+export const loginSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+});
+```
+
+---
+
+## 🔍 Next Steps Checklist
+
+- [ ]  Install `joi` and `bcryptjs` via NPM.
+- [ ]  Create your first domain model in `src/models/` ensuring modern async hooks drop the `next` callback.
+- [ ]  Create the corresponding HTTP input validation schemas in `src/validations/`.
+- [ ]  Proceed to **Phase 5** to wire the complete request pipeline, mapping these schemas and models cleanly through our Routes, Controllers, and Services.
