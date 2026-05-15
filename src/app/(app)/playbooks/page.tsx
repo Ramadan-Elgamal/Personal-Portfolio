@@ -1,11 +1,94 @@
+import Image from "next/image"
 import Link from "next/link"
 
+import PhaseCard from "@/components/playbooks/phase-card"
 import { PlaybookCard } from "@/components/playbooks/playbook-card"
+import { PlaybooksMethodology } from "@/components/playbooks/playbooks-methodology"
+import { PlaybooksNewsletter } from "@/components/playbooks/playbooks-newsletter"
+import { PlaybooksPainPoint } from "@/components/playbooks/playbooks-pain-point"
+import SectionSeparator from "@/components/section-separator"
+import { Button } from "@/components/ui/button"
 import { Container } from "@/components/ui/container"
 import {
   getAllPlaybooks,
   getLanguages,
 } from "@/features/playbooks/data/playbooks"
+import { Panel } from "@/features/portfolio/components/panel"
+
+const languageIcons: Record<string, React.ReactNode> = {
+  nodejs: (
+    <Image
+      src="/tech-stack-icons/nodejs.svg"
+      alt="Node.js"
+      width={44}
+      height={44}
+    />
+  ),
+  node: (
+    <Image
+      src="/tech-stack-icons/nodejs.svg"
+      alt="Node.js"
+      width={44}
+      height={44}
+    />
+  ),
+  javascript: (
+    <Image
+      src="/tech-stack-icons/javascript.svg"
+      alt="JavaScript"
+      width={44}
+      height={44}
+    />
+  ),
+  typescript: (
+    <Image
+      src="/tech-stack-icons/typescript.svg"
+      alt="TypeScript"
+      width={44}
+      height={44}
+    />
+  ),
+  python: (
+    <Image
+      src="/tech-stack-icons/python.svg"
+      alt="Python"
+      width={44}
+      height={44}
+    />
+  ),
+  react: (
+    <Image
+      src="/tech-stack-icons/react.svg"
+      alt="React"
+      width={44}
+      height={44}
+    />
+  ),
+  vuejs: (
+    <Image
+      src="/tech-stack-icons/vue.svg"
+      alt="Vue.js"
+      width={44}
+      height={44}
+    />
+  ),
+  vue: (
+    <Image
+      src="/tech-stack-icons/vue.svg"
+      alt="Vue.js"
+      width={44}
+      height={44}
+    />
+  ),
+  laravel: (
+    <Image
+      src="/tech-stack-icons/laravel.svg"
+      alt="Laravel"
+      width={44}
+      height={44}
+    />
+  ),
+}
 
 export const metadata = {
   title: "Playbooks",
@@ -28,66 +111,77 @@ export default function PlaybooksPage() {
   return (
     <Container className="py-12">
       {/* Hero Section */}
-      <div className="mb-16 text-center">
-        <h1 className="mb-4 text-5xl font-bold">Playbooks</h1>
-        <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-          Production-ready architectural patterns and best practices. Eliminate
-          decision fatigue and learn how to build enterprise-grade applications.
-        </p>
-      </div>
+      <Panel className="mb-16 text-center">
+        <div className="px-4 py-6 md:px-6 md:py-8">
+          <h1 className="mb-4 text-4xl font-bold">
+            Stop writing scripts. Start engineering systems.
+          </h1>
+          <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
+            Opinionated, step-by-step architectural playbooks to take you from
+            &quot;Hello World&quot; to production-ready enterprise applications.
+          </p>
+          <div className="mt-8 flex justify-center">
+            <Button asChild size="lg">
+              <Link href="#playbooks">Choose a playbook</Link>
+            </Button>
+          </div>
+        </div>
+      </Panel>
+
+      <SectionSeparator />
+
+      <PlaybooksPainPoint />
+
+      <SectionSeparator />
+
+      <PlaybooksMethodology />
+
+      <SectionSeparator />
 
       {/* Languages Grid */}
-      <div className="mb-16 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {languages.map((language) => {
-          const count = playbooksByLanguage[language].length
-          const displayName =
-            language.charAt(0).toUpperCase() + language.slice(1)
+      <Panel id="playbooks" className="mb-16">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {languages.map((language) => {
+            const count = playbooksByLanguage[language].length
+            const displayName =
+              language.charAt(0).toUpperCase() + language.slice(1)
+            const icon = languageIcons[language.toLowerCase()]
 
-          return (
-            <PlaybookCard
-              key={language}
-              href={`/playbooks/${language}`}
-              title={displayName}
-              description={`${count} playbook${count !== 1 ? "s" : ""}`}
-            />
-          )
-        })}
-      </div>
-
-      {/* Recent Playbooks */}
-      <div className="mb-12">
-        <h2 className="mb-8 text-3xl font-bold">Recent Playbooks</h2>
-        <div className="grid grid-cols-1 gap-6">
-          {allPlaybooks.slice(0, 5).map((playbook) => (
-            <PlaybookCard
-              key={`${playbook.language}-${playbook.slug}`}
-              href={`/playbooks/${playbook.language}/${playbook.slug}`}
-              eyebrow={playbook.language}
-              title={playbook.metadata.title}
-              description={playbook.metadata.description}
-            />
-          ))}
+            return (
+              <PlaybookCard
+                key={language}
+                href={`/playbooks/${language}`}
+                title={displayName}
+                description={`${count} playbook${count !== 1 ? "s" : ""}`}
+                icon={icon}
+              />
+            )
+          })}
         </div>
-      </div>
+      </Panel>
 
-      {/* CTA */}
-      <div className="border border-border bg-card p-8 text-center">
-        <h3 className="mb-3 text-2xl font-bold">Start Learning</h3>
-        <p className="mb-6 text-muted-foreground">
-          Pick a language and dive into production-ready architecture patterns.
-        </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          {languages.slice(0, 3).map((language) => (
-            <Link
-              key={language}
-              href={`/playbooks/${language}`}
-              className="bg-primary px-4 py-2 text-primary-foreground capitalize transition-opacity hover:opacity-90"
-            >
-              {language}
-            </Link>
-          ))}
+      {/* Recent Phases  */}
+      <Panel className="mb-12">
+        <div className="px-4">
+          <h2 className="mb-8 text-3xl font-bold">Recent Playbooks</h2>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {allPlaybooks.slice(0, 6).map((playbook) => (
+              <PhaseCard
+                key={`${playbook.language}-${playbook.slug}`}
+                href={`/playbooks/${playbook.language}/${playbook.slug}`}
+                slug={playbook.slug}
+                eyebrow={playbook.language}
+                title={playbook.metadata.title}
+                description={playbook.metadata.description}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      </Panel>
+
+      <SectionSeparator />
+
+      <PlaybooksNewsletter />
     </Container>
   )
 }

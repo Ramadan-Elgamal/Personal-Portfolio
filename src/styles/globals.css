@@ -452,6 +452,17 @@
   }
 }
 
+@utility glow-blue {
+  .dark & {
+    box-shadow: 0 0 20px 2px
+      color-mix(in oklch, var(--link) 50%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    box-shadow: none !important;
+  }
+}
+
 @utility glow-accent {
   .dark & {
     box-shadow: 0 0 25px 4px color-mix(in oklch, var(--link) 70%, transparent);

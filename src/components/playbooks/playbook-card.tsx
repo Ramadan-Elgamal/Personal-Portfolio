@@ -1,6 +1,8 @@
 import { ZapIcon } from "lucide-react"
 import Link from "next/link"
+import type { ReactNode } from "react"
 
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 type PlaybookCardProps = {
@@ -8,6 +10,7 @@ type PlaybookCardProps = {
   title: string
   description: string
   eyebrow?: string
+  icon?: ReactNode
   className?: string
 }
 
@@ -16,11 +19,11 @@ export function PlaybookCard({
   title,
   description,
   eyebrow,
+  icon,
   className,
 }: PlaybookCardProps) {
   return (
-    <Link
-      href={href}
+    <article
       className={cn(
         "group relative block overflow-hidden border border-border bg-[#050505] p-10 text-center text-foreground transition-transform duration-300 hover:-translate-y-1 hover:border-foreground/40 hover:shadow-2xl hover:shadow-black/30 md:p-12",
         className
@@ -42,7 +45,7 @@ export function PlaybookCard({
       />
 
       <div className="relative mx-auto mb-10 flex h-24 w-24 items-center justify-center border border-border/70 bg-black/40 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] transition-transform duration-300 group-hover:scale-105">
-        <ZapIcon className="h-11 w-11 text-white" />
+        {icon ? icon : <ZapIcon className="h-11 w-11 text-white" />}
       </div>
 
       {eyebrow ? (
@@ -58,6 +61,12 @@ export function PlaybookCard({
       <p className="relative mx-auto mt-5 max-w-xl text-lg leading-8 text-balance text-white/90 md:text-xl">
         {description}
       </p>
-    </Link>
+
+      <div className="relative mt-10 flex justify-center">
+        <Button asChild size="lg">
+          <Link href={href}>Start learning</Link>
+        </Button>
+      </div>
+    </article>
   )
 }
